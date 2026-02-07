@@ -1,9 +1,12 @@
 flask
 flask-cors
+gunicorn
+
 torch
 torchaudio
 transformers
 openai-whisper
-keras
+
+tensorflow-cpu==2.15.0
+keras==2.15.0
 numpy
-gunicorn
