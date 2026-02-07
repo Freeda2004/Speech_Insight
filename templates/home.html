@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Speech Insight | Home</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet" />
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: radial-gradient(circle at top, #111827, #020617);
+            color: #e5e7eb;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .home-container {
+            max-width: 1100px;
+            width: 92%;
+            padding: 48px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 0 80px rgba(56, 189, 248, 0.15);
+        }
+
+        /* Title */
+        .title {
+            font-size: 3.2rem;
+            text-align: center;
+            margin-bottom: 12px;
+            background: linear-gradient(90deg, #22d3ee, #a78bfa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.15rem;
+            opacity: 0.85;
+            margin-bottom: 36px;
+        }
+
+        /* Features */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .feature {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .feature span {
+            font-size: 1.4rem;
+            color: #38bdf8;
+            margin-right: 6px;
+        }
+
+        /* Button */
+        .launch-btn {
+            display: block;
+            margin: 0 auto 48px;
+            padding: 14px 42px;
+            font-size: 1.1rem;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            color: #020617;
+            font-weight: 600;
+            background: linear-gradient(90deg, #22d3ee, #a78bfa);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .launch-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.6);
+        }
+
+        /* About section */
+        .about {
+            margin-top: 20px;
+        }
+
+        .about h2 {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            color: #93c5fd;
+        }
+
+        .about p {
+            line-height: 1.7;
+            opacity: 0.9;
+            max-width: 900px;
+        }
+
+        /* Architecture image */
+        .architecture {
+            margin-top: 32px;
+            text-align: center;
+        }
+
+        .architecture img {
+            max-width: 100%;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 0 30px rgba(0,0,0,0.6);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 32px;
+            font-size: 0.85rem;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="home-container">
+
+        <!-- Title -->
+        <h1 class="title">Welcome to Speech Insight</h1>
+        <p class="subtitle">
+            A multimodal speech analysis platform for intelligent punctuation,
+            prosody understanding, and syllable-level insights.
+        </p>
+
+        <!-- Features -->
+        <div class="features">
+            <div class="feature">
+                <span>✔</span> Multimodal punctuation from speech & text
+            </div>
+            <div class="feature">
+                <span>✔</span> Prosodic word stress visualization
+            </div>
+            <div class="feature">
+                <span>✔</span> Syllable rhythm & timing analysis
+            </div>
+        </div>
+
+        <!-- Launch Button -->
+        <button class="launch-btn" onclick="window.location.href='/app'">
+
+            Launch Application
+        </button>
+
+        <!-- About -->
+        <section class="about">
+            <h2>About the Application</h2>
+            <p>
+                Speech Insight is an academic prototype designed to demonstrate how
+                speech and text can be jointly analyzed to enhance natural language
+                understanding. The system integrates automatic speech recognition
+                with punctuation restoration, prosodic stress cues, and syllable-level
+                temporal modeling. Although multiple modalities are accepted as input,
+                the punctuation restoration module is driven primarily by speech-based
+                modeling to highlight the power of acoustic cues in language structure.
+            </p>
+        </section>
+
+        <!-- Architecture -->
+        <section class="architecture">
+            <h2 style="color:#93c5fd; margin-bottom:16px;">System Architecture</h2>
+            <img src="{{ url_for('static', filename='images/home.png') }}" alt="Home Image">
+
+        </section>
+
+        <!-- Footer -->
+        <div class="footer">
+            © 2025 Speech Insight · Multimodal Speech Analysis Lab
+        </div>
+
+    </div>
+</body>
+</html>

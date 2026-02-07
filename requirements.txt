@@ -1,0 +1,8 @@
+flask
+flask-cors
+torch
+torchaudio
+transformers
+openai-whisper
+keras
+numpy

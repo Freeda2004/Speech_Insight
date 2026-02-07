@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Speech Insight - Multimodal Speech Analysis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+.home-btn {
+    margin-right: 16px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08);
+    color: #e5e7eb;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.home-btn:hover {
+    background: rgba(255,255,255,0.16);
+    transform: translateX(-3px);
+}
+
+</style>
+
+</head>
+<body>
+    <div class="background">
+        <div class="bg-gradient"></div>
+        <div class="bg-orbit bg-orbit-1"></div>
+        <div class="bg-orbit bg-orbit-2"></div>
+        <div class="bg-noise"></div>
+    </div>
+
+    <div class="app-shell">
+        <header class="top-bar glass">
+            <button class="home-btn" onclick="window.location.href='/'">
+    ⬅ Home
+</button>
+
+
+            <div class="title-block">
+                <h1 class="app-title">
+                    <span class="accent-cyan">Speech</span>
+                    <span class="accent-violet">Insight</span>
+                </h1>
+                <p class="app-tagline">
+                    A multimodal speech analysis tool for punctuation restoration,
+                    word stress detection and syllable profiling
+                </p>
+            </div>
+            <div class="status-pill">
+                <span class="status-dot"></span>
+                <span class="status-text">Lab Mode · Ready</span>
+            </div>
+        </header>
+
+        <main class="main-layout glass">
+            <!-- LEFT: MODULE MENU -->
+            <nav class="side-menu">
+                <h2 class="side-label">Modules</h2>
+
+                <button class="menu-item active" data-target="#module-punct">
+                    <div class="icon-circle icon-cyan">,?</div>
+                    <div class="menu-text">
+                        <span class="menu-title">Punctuation Lab</span>
+                        <span class="menu-sub">Text + Speech restoration</span>
+                    </div>
+                </button>
+
+                <button class="menu-item" data-target="#module-stress">
+                    <div class="icon-circle icon-magenta">ˈa</div>
+                    <div class="menu-text">
+                        <span class="menu-title">Stress Studio</span>
+                        <span class="menu-sub">Word stress analysis</span>
+                    </div>
+                </button>
+
+                <button class="menu-item" data-target="#module-syllable">
+                    <div class="icon-circle icon-amber">σ</div>
+                    <div class="menu-text">
+                        <span class="menu-title">Syllable Profiler</span>
+                        <span class="menu-sub">Syllable count & rhythm</span>
+                    </div>
+                </button>
+            </nav>
+
+            <!-- RIGHT: MODULE PANELS -->
+            <section class="content-panel">
+                <!-- FLOATING AUDIO ORB -->
+                <div class="audio-orb">
+                    <div class="orb-core"></div>
+                    <div class="orb-ring orb-ring-1"></div>
+                    <div class="orb-ring orb-ring-2"></div>
+                </div>
+
+                <!-- TOGGLE BAR -->
+                <div class="mode-bar">
+                    <div class="mode-label">
+                        <span class="dot"></span>
+                        <span class="text">Input mode</span>
+                    </div>
+                    <!-- <div class="mode-toggle">
+                        <button class="mode-btn active">Live Mic</button>
+                        <button class="mode-btn">Upload Audio</button>
+                        <button class="mode-btn">Paste Text</button>
+                    </div> -->
+                </div>
+
+                <!-- MODULE 1: PUNCTUATION -->
+                <div class="module-panel module-active" id="module-punct">
+                    <div class="module-header">
+                        <div>
+                            <h2 class="module-title accent-cyan">Punctuation Lab</h2>
+                            <p class="module-subtitle">
+                                Multimodal punctuation restoration from raw speech and text.
+                            </p>
+                        </div>
+                        <span class="chip chip-cyan">Multimodal · Text + Audio</span>
+                    </div>
+
+                    <div class="module-grid">
+                        <!-- Waveform / audio area -->
+                        <div class="card glass card-wave">
+                            <div class="card-header">
+                                <span>Acoustic Stream</span>
+                                <span class="mini-badge">Waveform</span>
+                            </div>
+                            <div class="fake-wave fake-wave-cyan"></div>
+                            <div class="controls-row">
+                                <button class="neo-btn primary-cyan">●UPLOAD</button>
+                                <!-- <button class="neo-btn ghost">▶ Play</button>
+                                <button class="neo-btn ghost">⏹ Stop</button> -->
+                            </div>
+                        </div>
+
+                        <!-- Text + output -->
+                        <div class="card glass card-io">
+                            <div class="card-header">
+                                <span>Transcript & Restoration</span>
+                                <span class="mini-badge">Model Output</span>
+                            </div>
+                            <div class="io-split">
+                                <div class="io-block">
+                                    <label>Raw transcript</label>
+                                    <textarea placeholder="Type or paste unpunctuated text here..."></textarea>
+                                </div>
+                                <div class="io-block">
+                                    <label>Restored with punctuation</label>
+                                    <textarea class="output" placeholder="Model output will appear here..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline strip -->
+                    <div class="timeline glass">
+                        <div class="timeline-label">Word-level punctuation timeline</div>
+                        <div class="timeline-track" id="punctuationTimeline">
+
+                            <span class="token">today</span>
+                            <span class="token token-mark">,</span>
+                            <span class="token">we</span>
+                            <span class="token">test</span>
+                            <span class="token token-mark">?</span>
+                            <span class="token">speech</span>
+                            <span class="token">insight</span>
+                            <span class="token token-mark">.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 2: WORD STRESS -->
+                <div class="module-panel" id="module-stress">
+                    <div class="module-header">
+                        <div>
+                            <h2 class="module-title accent-magenta">Stress Studio</h2>
+                            <p class="module-subtitle">
+                                Visualize primary and secondary stress patterns across words.
+                            </p>
+                        </div>
+                        <span class="chip chip-magenta">Prosody · Word-level</span>
+                    </div>
+
+                    <div class="module-grid">
+                        <!-- Waveform / energy -->
+                        <div class="card glass card-wave">
+                            
+                            <div class="card-header">
+                                <span>Prosodic Contour</span>
+                                <span class="mini-badge">Pitch & Energy</span>
+                            </div>
+                            <div class="fake-wave fake-wave-magenta"></div>
+                            <div class="legend-row">
+                                <span class="legend-dot legend-magenta"></span><span>Pitch</span>
+                                <span class="legend-dot legend-soft"></span><span>Energy</span>
+                            </div>
+                            <div class="controls-row">
+    <button
+  class="neo-btn primary-cyan"
+  id="stressUpload"
+  type="button"
+>
+●UPLOAD
+</button>
+
+
+</div>
+                        </div>
+
+                        <!-- Stress bars -->
+                        <div class="card glass card-stress">
+                            <div class="card-header">
+                                <span>Word stress levels</span>
+                                <span class="mini-badge">Intensity</span>
+                            </div>
+                            <div class="stress-bars">
+                                <div class="stress-item">
+                                    <span class="stress-word">pho-</span>
+                                    <div class="stress-bar high"></div>
+                                </div>
+                                <div class="stress-item">
+                                    <span class="stress-word">no-</span>
+                                    <div class="stress-bar mid"></div>
+                                </div>
+                                <div class="stress-item">
+                                    <span class="stress-word">logy</span>
+                                    <div class="stress-bar low"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="timeline glass">
+                        <div class="timeline-label">Primary (ˈ) and secondary (ˌ) stress annotation</div>
+                        <div class="timeline-track">
+                            <span class="token">ˈpho</span>
+                            <span class="token">ˌno</span>
+                            <span class="token">logy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 3: SYLLABLE -->
+                <div class="module-panel" id="module-syllable">
+                    <div class="module-header">
+                        <div>
+                            <h2 class="module-title accent-amber">Syllable Profiler</h2>
+                            <p class="module-subtitle">
+                                Estimate syllable counts and temporal rhythm from speech.
+                            </p>
+                        </div>
+                        <span class="chip chip-amber">Temporal · Rhythm</span>
+                    </div>
+
+                    <div class="module-grid">
+                        <!-- Rhythm / pulse -->
+                        <div class="card glass card-wave">
+                            <div class="card-header">
+                                <span>Syllable rhythm</span>
+                                <span class="mini-badge">Temporal grid</span>
+                            </div>
+                            <div class="fake-wave fake-wave-amber"></div>
+                            <p class="helper-text">Each peak approximates a syllable pulse.</p>
+                            <div class="controls-row">
+    <button
+  class="neo-btn primary-magenta"
+  id="syllableUpload"
+  type="button"
+>
+ ● UPLOAD
+</button>
+
+
+
+</div>
+                        </div>
+
+                        <!-- Syllable stats -->
+                        <div class="card glass card-syllable">
+                            <div class="card-header">
+                                <span>Syllable statistics</span>
+                                <span class="mini-badge">Per-utterance</span>
+                            </div>
+                            <div class="syllable-stats">
+                                <div class="stat-pill">
+                                    <span class="stat-label">Estimated syllables</span>
+                                    <span class="stat-value">11</span>
+                                </div>
+                                <div class="stat-pill">
+                                    <span class="stat-label">Rate (syll/sec)</span>
+                                    <span class="stat-value">4.2</span>
+                                </div>
+                                <!-- <div class="stat-pill">
+                                    <span class="stat-label">Rhythm score</span>
+                                    <span class="stat-value">0.87</span>
+                                </div> -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="timeline glass">
+                        <div class="timeline-label">Token-level syllable blocks</div>
+                        <div class="timeline-track timeline-syllables">
+                            <div class="syllable-token">
+                                <span class="word">speech</span>
+                                <div class="blocks">
+                                    <span></span>
+                                </div>
+                            </div>
+                            <div class="syllable-token">
+                                <span class="word">in-sight</span>
+                                <div class="blocks">
+                                    <span></span><span></span>
+                                </div>
+                            </div>
+                            <div class="syllable-token">
+                                <span class="word">an-a-ly-sis</span>
+                                <div class="blocks">
+                                    <span></span><span></span><span></span><span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer glass">
+            <span>© 2025 Speech Insight · Multimodal Speech Analysis Lab</span>
+            <span class="footer-note">Built as an academic prototype for punctuation, stress and syllable profiling</span>
+        </footer>
+    </div>
+
+    <!-- Optional: simple JS to switch modules -->
+<script>
+
+/* ==========================================================
+   MODULE SWITCHING (existing UI logic – unchanged)
+========================================================== */
+const buttons = document.querySelectorAll('.menu-item');
+const modules = document.querySelectorAll('.module-panel');
+
+buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const target = btn.getAttribute('data-target');
+        modules.forEach(m => {
+            m.classList.toggle('module-active', m.id === target.substring(1));
+        });
+    });
+});
+
+/* ==========================================================
+   PUNCTUATION LAB – REAL OUTPUT + TIMELINE
+========================================================== */
+
+const punctModule = document.querySelector("#module-punct");
+
+const uploadBtn = punctModule.querySelector(".controls-row .primary-cyan");
+
+const rawTextArea = punctModule.querySelector(
+    "textarea:not(.output)"
+);
+const outputTextArea = punctModule.querySelector(
+    "textarea.output"
+);
+
+const timeline = document.getElementById("punctuationTimeline");
+
+uploadBtn.addEventListener("click", () => {
+
+    if (!rawTextArea.value.trim()) {
+        outputTextArea.value =
+            "⚠ Please paste the unpunctuated transcript first.";
+        return;
+    }
+
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".wav";
+
+    fileInput.onchange = async () => {
+        const audioFile = fileInput.files[0];
+        if (!audioFile) return;
+
+        const formData = new FormData();
+        formData.append("audio", audioFile);
+        formData.append("text", rawTextArea.value);
+
+        outputTextArea.value =
+            "🔍 Restoring punctuation from speech...";
+
+        timeline.innerHTML = "";
+
+        try {
+            const response = await fetch(
+                "http://127.0.0.1:5000/punctuate",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Server error");
+            }
+
+            const data = await response.json();
+
+            const punctuatedText = data.punctuated_text || "";
+            outputTextArea.value = punctuatedText;
+
+            /* ===== Build word-level punctuation timeline ===== */
+            const tokens = punctuatedText.match(/\w+|[^\s\w]/g) || [];
+
+            tokens.forEach(tok => {
+                const span = document.createElement("span");
+
+                if (/[.,!?]/.test(tok)) {
+                    span.className = "token token-mark";
+                } else {
+                    span.className = "token";
+                }
+
+                span.textContent = tok;
+                timeline.appendChild(span);
+            });
+
+        } catch (err) {
+            console.error(err);
+            outputTextArea.value =
+                "❌ Backend error. Please check the Flask server.";
+        }
+    };
+
+    fileInput.click();
+});
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    /* ==========================================================
+       STRESS STUDIO – WORD STRESS PIPELINE (SAFE)
+    ========================================================== */
+
+    const stressBtn = document.getElementById("stressUpload");
+    const stressInput = document.getElementById("stressAudioInput");
+    const stressPanel = document.getElementById("module-stress");
+
+    const stressBars = stressPanel.querySelector(".stress-bars");
+    const stressTimeline = stressPanel.querySelector(".timeline-track");
+
+    if (stressBtn && stressInput) {
+        stressBtn.addEventListener("click", () => {
+            stressInput.value = "";
+            stressInput.click();
+        });
+
+        stressInput.addEventListener("change", async () => {
+            const audioFile = stressInput.files[0];
+            if (!audioFile) return;
+
+            stressBars.innerHTML = "<p>🔍 Analyzing word stress...</p>";
+            stressTimeline.innerHTML = "";
+
+            const formData = new FormData();
+            formData.append("audio", audioFile);
+
+            try {
+                const response = await fetch(
+                    "http://127.0.0.1:5000/stress",
+                    { method: "POST", body: formData }
+                );
+
+                const data = await response.json();
+                stressBars.innerHTML = "";
+                stressTimeline.innerHTML = "";
+
+                data.words.forEach(w => {
+                    const item = document.createElement("div");
+                    item.className = "stress-item";
+
+                    const word = document.createElement("span");
+                    word.className = "stress-word";
+                    word.textContent = w.word;
+
+                    const bar = document.createElement("div");
+                    bar.className = "stress-bar";
+                    bar.classList.add(w.stress === 1 ? "high" : "low");
+
+                    item.appendChild(word);
+                    item.appendChild(bar);
+                    stressBars.appendChild(item);
+
+                    const token = document.createElement("span");
+                    token.className = "token";
+                    token.textContent =
+                        `${w.stress === 1 ? "ˈ" : ""}${w.word} (${w.start}-${w.end}s)`;
+                    stressTimeline.appendChild(token);
+                });
+
+            } catch (err) {
+                stressBars.innerHTML =
+                    "<p>❌ Backend error. Check /stress endpoint.</p>";
+            }
+        });
+    }
+/* ==========================================================
+   SYLLABLE PROFILER – SAFE & WORKING
+========================================================== */
+
+const syllableBtn = document.getElementById("syllableUpload");
+const syllableInput = document.getElementById("syllableAudioInput");
+
+const syllableCountEl =
+    document.querySelector("#module-syllable .stat-pill:nth-child(1) .stat-value");
+const syllableRateEl =
+    document.querySelector("#module-syllable .stat-pill:nth-child(2) .stat-value");
+
+if (syllableBtn && syllableInput) {
+
+    // OPEN FILE PICKER
+    syllableBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        syllableInput.value = "";   // reset
+        syllableInput.click();      // 🔥 THIS opens file dialog
+    });
+
+    // FILE SELECTED
+    syllableInput.addEventListener("change", async () => {
+        const audioFile = syllableInput.files[0];
+        if (!audioFile) return;
+
+        syllableCountEl.textContent = "⏳";
+        syllableRateEl.textContent = "⏳";
+
+        const formData = new FormData();
+        formData.append("audio", audioFile);
+
+        try {
+            const response = await fetch("http://127.0.0.1:5000/syllables", {
+    method: "POST",
+    body: formData,
+    mode: "cors"
+});
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Server error");
+            }
+
+            syllableCountEl.textContent = data.syllable_count;
+            syllableRateEl.textContent = data.syllable_rate;
+
+        } catch (err) {
+            console.error("Syllable error:", err);
+            syllableCountEl.textContent = "❌";
+            syllableRateEl.textContent = "❌";
+            alert("Syllable error: " + err.message);
+        }
+    });
+}
+
+
+});
+
+
+</script>
+<input type="file" id="stressAudioInput" accept=".wav" hidden>
+<input type="file" id="syllableAudioInput" accept=".wav" hidden>
+
+
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+.env
+
+# Models & large files
+*.pth
+*.pt
+*.keras
+*.h5
+nppy_germ_folder/
+
+# Runtime / generated files
+uploads/
+timestamp/
+
+# Editor / OS
+.vscode/
+.DS_Store
+
+# Extras (not needed for deployment)
+*.pptx
+*.drawio
+UI*.png
+test.py
