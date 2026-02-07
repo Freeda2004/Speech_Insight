@@ -6,3 +6,4 @@ transformers
 openai-whisper
 keras
 numpy
+gunicorn
