@@ -297,84 +297,351 @@
 
 
 
-from flask import Flask, request, jsonify
+# from flask import Flask, request, jsonify
+# from flask_cors import CORS
+# from tensorflow import keras
+
+# import torch
+# import torchaudio
+# import whisper
+# import tempfile
+# import os
+# import numpy as np
+# from flask import render_template
+# from transformers import Wav2Vec2Processor, Wav2Vec2Model
+# from SentenceLevelWordStressClassificationModel import WordLevelClassifier
+# app = Flask(__name__)
+# # ================= CONFIG =================
+# MODEL_PATH = "word_level_model.pth"
+
+# # 🔥 FORCE CPU (Flask-safe, fixes device error)
+# DEVICE = torch.device("cpu")
+
+# SELECTED_LAYERS = [9]
+# INPUT_DIM = 768 * len(SELECTED_LAYERS)
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# SYL_MODEL_PATH = os.path.join(BASE_DIR, "sylnet_gercorrect_new.keras")
+# HUBERT_NPY_DIR = os.path.join(BASE_DIR, "nppy_germ_folder")
+
+# # -------- SYLLABLE CONFIG --------
+# MAX_TIME = 200
+# SAMPLE_RATE = 16000
+# # =========================================
+
+
+
+
+# CORS(
+#     app,
+#     resources={r"/*": {"origins": "*"}},
+#     supports_credentials=True
+# )
+
+
+# # ---------- LOAD MODELS ----------
+# print("🔹 Loading Whisper...")
+# whisper_model = whisper.load_model("base")
+
+# print("🔹 Loading Wav2Vec2...")
+# processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+# wav2vec = Wav2Vec2Model.from_pretrained(
+#     "facebook/wav2vec2-base-960h"
+# ).to(DEVICE)
+# wav2vec.eval()
+
+# print("🔹 Loading Word Stress Model...")
+# stress_model = WordLevelClassifier(input_dim=INPUT_DIM)
+# stress_model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+# stress_model.to(DEVICE)
+# stress_model.eval()
+
+# print("🔹 Loading Syllable Model...")
+# syllable_model = keras.models.load_model(SYL_MODEL_PATH)
+
+# # 🔥 MOVE EMBEDDING TO SAME DEVICE
+# quant_embedder = torch.nn.Embedding(
+#     num_embeddings=1024,
+#     embedding_dim=512
+# ).to(DEVICE)
+
+# # ==========================================================
+# #  FEATURE EXTRACTION — WORD STRESS
+# # ==========================================================
+# def extract_word_features(waveform, sr, word_timestamps):
+#     inputs = processor(
+#         waveform.squeeze().numpy(),
+#         sampling_rate=sr,
+#         return_tensors="pt"
+#     ).input_values.to(DEVICE)
+
+#     with torch.no_grad():
+#         outputs = wav2vec(inputs, output_hidden_states=True)
+#         hidden = outputs.hidden_states[SELECTED_LAYERS[0]]
+
+#     total_audio_time = waveform.shape[1] / sr
+#     T = hidden.shape[1]
+
+#     feats = []
+#     for w in word_timestamps:
+#         start = int((w["start"] / total_audio_time) * T)
+#         end = int((w["end"] / total_audio_time) * T)
+#         end = max(end, start + 1)
+#         feats.append(hidden[:, start:end, :].mean(dim=1))
+
+#     return torch.cat(feats, dim=0)
+
+# # ==========================================================
+# #  FEATURE EXTRACTION — SYLLABLE (PRECOMPUTED NPY ✔)
+# # ==========================================================
+# def extract_syllable_features(wav_path):
+#     waveform, sr = torchaudio.load(wav_path)
+
+#     if sr != SAMPLE_RATE:
+#         waveform = torchaudio.transforms.Resample(sr, SAMPLE_RATE)(waveform)
+
+#     inputs = processor(
+#         waveform.squeeze(),
+#         sampling_rate=SAMPLE_RATE,
+#         return_tensors="pt"
+#     ).input_values.to(DEVICE)
+
+#     with torch.no_grad():
+#         wav_feats = wav2vec(inputs).last_hidden_state.squeeze(0).to(DEVICE)
+#         # (T, 768)
+
+#     npy_path = os.path.join(
+#         HUBERT_NPY_DIR,
+#         os.path.basename(wav_path).replace(".wav", ".npy")
+#     )
+
+#     if not os.path.exists(npy_path):
+#         raise FileNotFoundError(f"HuBERT file not found: {npy_path}")
+
+#     indices = torch.tensor(
+#         np.load(npy_path),
+#         dtype=torch.long
+#     ).to(DEVICE)
+
+#     with torch.no_grad():
+#         hubert_feats = quant_embedder(indices)
+#         # (T, 512)
+
+#     T = min(wav_feats.shape[0], hubert_feats.shape[0])
+#     combined = torch.cat([wav_feats[:T], hubert_feats[:T]], dim=-1)
+
+#     if combined.shape[0] > MAX_TIME:
+#         combined = combined[:MAX_TIME]
+#     else:
+#         pad = MAX_TIME - combined.shape[0]
+#         combined = torch.nn.functional.pad(combined, (0, 0, 0, pad))
+
+#     return combined.cpu().numpy()
+
+# # ==========================================================
+# #  PUNCTUATION ENDPOINT
+# # ==========================================================
+# @app.route("/punctuate", methods=["POST"])
+# def punctuate():
+#     audio = request.files["audio"]
+
+#     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+#         audio.save(tmp.name)
+#         audio_path = tmp.name
+
+#     result = whisper_model.transcribe(audio_path)
+#     os.remove(audio_path)
+
+#     return jsonify({"punctuated_text": result["text"]})
+
+# # ==========================================================
+# #  WORD STRESS ENDPOINT
+# # ==========================================================
+# @app.route("/stress", methods=["POST"])
+# def stress():
+#     audio = request.files["audio"]
+
+#     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+#         audio.save(tmp.name)
+#         audio_path = tmp.name
+
+#     result = whisper_model.transcribe(audio_path, word_timestamps=True)
+
+#     word_ts = []
+#     for seg in result["segments"]:
+#         for w in seg["words"]:
+#             word_ts.append({
+#                 "word": w["word"].strip(),
+#                 "start": w["start"],
+#                 "end": w["end"]
+#             })
+
+#     waveform, sr = torchaudio.load(audio_path)
+#     feats = extract_word_features(waveform, sr, word_ts)
+#     lengths = torch.tensor([feats.shape[0]]).to(DEVICE)
+
+#     with torch.no_grad():
+#         preds = stress_model(feats.unsqueeze(0), lengths).argmax(dim=-1)[0]
+
+#     os.remove(audio_path)
+
+#     return jsonify({
+#         "words": [
+#             {
+#                 "word": word_ts[i]["word"],
+#                 "stress": int(preds[i]),
+#                 "start": round(word_ts[i]["start"], 2),
+#                 "end": round(word_ts[i]["end"], 2)
+#             }
+#             for i in range(len(word_ts))
+#         ]
+#     })
+
+# # ==========================================================
+# #  SYLLABLE PROFILING ENDPOINT
+# # ==========================================================
+# @app.route("/syllables", methods=["POST"])
+# def syllables():
+#     if "audio" not in request.files:
+#         return jsonify({"error": "No audio uploaded"}), 400
+
+#     audio = request.files["audio"]
+
+#     upload_dir = "uploads"
+#     os.makedirs(upload_dir, exist_ok=True)
+
+#     audio_path = os.path.join(upload_dir, audio.filename)
+#     audio.save(audio_path)
+
+#     # 🔴 EARLY CHECK FOR NPY
+#     npy_path = os.path.join(
+#         HUBERT_NPY_DIR,
+#         audio.filename.replace(".wav", ".npy")
+#     )
+
+#     if not os.path.exists(npy_path):
+#         return jsonify({
+#             "error": f"No precomputed HuBERT file for {audio.filename}"
+#         }), 400
+
+#     try:
+#         waveform, sr = torchaudio.load(audio_path)
+#         duration = waveform.shape[1] / sr
+
+#         feats = extract_syllable_features(audio_path)
+#         feats = np.expand_dims(feats, axis=0).astype(np.float32)
+
+#         pred = syllable_model.predict(feats, verbose=0)
+#         syllable_count = int(round(pred[0][0]))
+
+#         # ✅ SAFE RATE COMPUTATION
+#         syllable_rate = (
+#             round(syllable_count / duration, 2)
+#             if duration > 0 else 0.0
+#         )
+
+#     except Exception as e:
+#         print("❌ Syllable error:", e)
+#         return jsonify({"error": str(e)}), 500
+#     print("✅ Sending syllable response")
+
+#     return jsonify({
+#         "syllable_count": syllable_count,
+#         "syllable_rate": syllable_rate,
+#         "duration": round(duration, 2)
+#     })
+# @app.route("/")
+# def home():
+#     return render_template("home.html")
+
+
+# @app.route("/app")
+# def app_page():
+#     return render_template("index.html")
+
+# # ---------- RUN ----------
+# if __name__ == "__main__":
+#       app.run()
+
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from tensorflow import keras
-
-import torch
-import torchaudio
-import whisper
-import tempfile
 import os
+import tempfile
 import numpy as np
-from flask import render_template
-from transformers import Wav2Vec2Processor, Wav2Vec2Model
-from SentenceLevelWordStressClassificationModel import WordLevelClassifier
-app = Flask(__name__)
+
 # ================= CONFIG =================
-MODEL_PATH = "word_level_model.pth"
-
-# 🔥 FORCE CPU (Flask-safe, fixes device error)
-DEVICE = torch.device("cpu")
-
-SELECTED_LAYERS = [9]
-INPUT_DIM = 768 * len(SELECTED_LAYERS)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
+MODEL_PATH = os.path.join(BASE_DIR, "word_level_model.pth")
 SYL_MODEL_PATH = os.path.join(BASE_DIR, "sylnet_gercorrect_new.keras")
 HUBERT_NPY_DIR = os.path.join(BASE_DIR, "nppy_germ_folder")
-
-# -------- SYLLABLE CONFIG --------
+SELECTED_LAYERS = [9]
+INPUT_DIM = 768 * len(SELECTED_LAYERS)
 MAX_TIME = 200
 SAMPLE_RATE = 16000
-# =========================================
 
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
+# ================= GLOBAL PLACEHOLDERS =================
+whisper_model = None
+wav2vec = None
+processor = None
+stress_model = None
+syllable_model = None
+quant_embedder = None
+DEVICE = None
 
+# ================= LAZY LOAD FUNCTIONS =================
+def get_whisper():
+    global whisper_model
+    if whisper_model is None:
+        import whisper
+        whisper_model = whisper.load_model("base")  # or "small" for lighter memory
+    return whisper_model
 
-CORS(
-    app,
-    resources={r"/*": {"origins": "*"}},
-    supports_credentials=True
-)
+def get_wav2vec():
+    global wav2vec, processor, DEVICE
+    if wav2vec is None:
+        import torch
+        from transformers import Wav2Vec2Processor, Wav2Vec2Model
+        DEVICE = torch.device("cpu")
+        processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+        wav2vec = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base-960h").to(DEVICE)
+        wav2vec.eval()
+    return wav2vec, processor, DEVICE
 
+def get_stress_model():
+    global stress_model, DEVICE
+    if stress_model is None:
+        import torch
+        from SentenceLevelWordStressClassificationModel import WordLevelClassifier
+        DEVICE = torch.device("cpu")
+        model = WordLevelClassifier(input_dim=INPUT_DIM)
+        model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+        model.to(DEVICE)
+        model.eval()
+        stress_model = model
+    return stress_model, DEVICE
 
-# ---------- LOAD MODELS ----------
-print("🔹 Loading Whisper...")
-whisper_model = whisper.load_model("base")
+def get_syllable_model():
+    global syllable_model
+    if syllable_model is None:
+        from tensorflow import keras
+        syllable_model = keras.models.load_model(SYL_MODEL_PATH)
+    return syllable_model
 
-print("🔹 Loading Wav2Vec2...")
-processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
-wav2vec = Wav2Vec2Model.from_pretrained(
-    "facebook/wav2vec2-base-960h"
-).to(DEVICE)
-wav2vec.eval()
+def get_quant_embedder():
+    global quant_embedder
+    if quant_embedder is None:
+        import torch
+        quant_embedder = torch.nn.Embedding(num_embeddings=1024, embedding_dim=512)
+    return quant_embedder
 
-print("🔹 Loading Word Stress Model...")
-stress_model = WordLevelClassifier(input_dim=INPUT_DIM)
-stress_model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
-stress_model.to(DEVICE)
-stress_model.eval()
-
-print("🔹 Loading Syllable Model...")
-syllable_model = keras.models.load_model(SYL_MODEL_PATH)
-
-# 🔥 MOVE EMBEDDING TO SAME DEVICE
-quant_embedder = torch.nn.Embedding(
-    num_embeddings=1024,
-    embedding_dim=512
-).to(DEVICE)
-
-# ==========================================================
-#  FEATURE EXTRACTION — WORD STRESS
-# ==========================================================
+# ================= HELPER FUNCTIONS =================
 def extract_word_features(waveform, sr, word_timestamps):
-    inputs = processor(
-        waveform.squeeze().numpy(),
-        sampling_rate=sr,
-        return_tensors="pt"
-    ).input_values.to(DEVICE)
-
+    import torch
+    wav2vec, processor, DEVICE = get_wav2vec()
+    inputs = processor(waveform.squeeze().numpy(), sampling_rate=sr, return_tensors="pt").input_values.to(DEVICE)
     with torch.no_grad():
         outputs = wav2vec(inputs, output_hidden_states=True)
         hidden = outputs.hidden_states[SELECTED_LAYERS[0]]
@@ -388,44 +655,29 @@ def extract_word_features(waveform, sr, word_timestamps):
         end = int((w["end"] / total_audio_time) * T)
         end = max(end, start + 1)
         feats.append(hidden[:, start:end, :].mean(dim=1))
-
     return torch.cat(feats, dim=0)
 
-# ==========================================================
-#  FEATURE EXTRACTION — SYLLABLE (PRECOMPUTED NPY ✔)
-# ==========================================================
 def extract_syllable_features(wav_path):
-    waveform, sr = torchaudio.load(wav_path)
+    import torch
+    import torchaudio
+    wav2vec, processor, DEVICE = get_wav2vec()
+    quant_embedder = get_quant_embedder()
 
+    waveform, sr = torchaudio.load(wav_path)
     if sr != SAMPLE_RATE:
         waveform = torchaudio.transforms.Resample(sr, SAMPLE_RATE)(waveform)
 
-    inputs = processor(
-        waveform.squeeze(),
-        sampling_rate=SAMPLE_RATE,
-        return_tensors="pt"
-    ).input_values.to(DEVICE)
-
+    inputs = processor(waveform.squeeze(), sampling_rate=SAMPLE_RATE, return_tensors="pt").input_values.to(DEVICE)
     with torch.no_grad():
         wav_feats = wav2vec(inputs).last_hidden_state.squeeze(0).to(DEVICE)
-        # (T, 768)
 
-    npy_path = os.path.join(
-        HUBERT_NPY_DIR,
-        os.path.basename(wav_path).replace(".wav", ".npy")
-    )
-
+    npy_path = os.path.join(HUBERT_NPY_DIR, os.path.basename(wav_path).replace(".wav", ".npy"))
     if not os.path.exists(npy_path):
         raise FileNotFoundError(f"HuBERT file not found: {npy_path}")
 
-    indices = torch.tensor(
-        np.load(npy_path),
-        dtype=torch.long
-    ).to(DEVICE)
-
+    indices = torch.tensor(np.load(npy_path), dtype=torch.long).to(DEVICE)
     with torch.no_grad():
         hubert_feats = quant_embedder(indices)
-        # (T, 512)
 
     T = min(wav_feats.shape[0], hubert_feats.shape[0])
     combined = torch.cat([wav_feats[:T], hubert_feats[:T]], dim=-1)
@@ -435,130 +687,92 @@ def extract_syllable_features(wav_path):
     else:
         pad = MAX_TIME - combined.shape[0]
         combined = torch.nn.functional.pad(combined, (0, 0, 0, pad))
-
     return combined.cpu().numpy()
 
-# ==========================================================
-#  PUNCTUATION ENDPOINT
-# ==========================================================
+# ================= ENDPOINTS =================
 @app.route("/punctuate", methods=["POST"])
 def punctuate():
     audio = request.files["audio"]
-
+    import os
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         audio.save(tmp.name)
         audio_path = tmp.name
 
-    result = whisper_model.transcribe(audio_path)
+    model = get_whisper()
+    result = model.transcribe(audio_path)
     os.remove(audio_path)
-
     return jsonify({"punctuated_text": result["text"]})
 
-# ==========================================================
-#  WORD STRESS ENDPOINT
-# ==========================================================
 @app.route("/stress", methods=["POST"])
 def stress():
     audio = request.files["audio"]
+    import os
+    import torch
+    import torchaudio
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         audio.save(tmp.name)
         audio_path = tmp.name
 
-    result = whisper_model.transcribe(audio_path, word_timestamps=True)
+    model = get_whisper()
+    result = model.transcribe(audio_path, word_timestamps=True)
 
     word_ts = []
     for seg in result["segments"]:
         for w in seg["words"]:
-            word_ts.append({
-                "word": w["word"].strip(),
-                "start": w["start"],
-                "end": w["end"]
-            })
+            word_ts.append({"word": w["word"].strip(), "start": w["start"], "end": w["end"]})
 
     waveform, sr = torchaudio.load(audio_path)
     feats = extract_word_features(waveform, sr, word_ts)
-    lengths = torch.tensor([feats.shape[0]]).to(DEVICE)
+    lengths = torch.tensor([feats.shape[0]]).to("cpu")
 
+    stress_model, DEVICE = get_stress_model()
     with torch.no_grad():
         preds = stress_model(feats.unsqueeze(0), lengths).argmax(dim=-1)[0]
 
     os.remove(audio_path)
-
     return jsonify({
         "words": [
-            {
-                "word": word_ts[i]["word"],
-                "stress": int(preds[i]),
-                "start": round(word_ts[i]["start"], 2),
-                "end": round(word_ts[i]["end"], 2)
-            }
+            {"word": word_ts[i]["word"], "stress": int(preds[i]),
+             "start": round(word_ts[i]["start"],2), "end": round(word_ts[i]["end"],2)}
             for i in range(len(word_ts))
         ]
     })
 
-# ==========================================================
-#  SYLLABLE PROFILING ENDPOINT
-# ==========================================================
 @app.route("/syllables", methods=["POST"])
 def syllables():
-    if "audio" not in request.files:
+    audio = request.files.get("audio")
+    if audio is None:
         return jsonify({"error": "No audio uploaded"}), 400
 
-    audio = request.files["audio"]
-
-    upload_dir = "uploads"
+    upload_dir = os.path.join(BASE_DIR, "uploads")
     os.makedirs(upload_dir, exist_ok=True)
-
     audio_path = os.path.join(upload_dir, audio.filename)
     audio.save(audio_path)
 
-    # 🔴 EARLY CHECK FOR NPY
-    npy_path = os.path.join(
-        HUBERT_NPY_DIR,
-        audio.filename.replace(".wav", ".npy")
-    )
-
+    npy_path = os.path.join(HUBERT_NPY_DIR, audio.filename.replace(".wav", ".npy"))
     if not os.path.exists(npy_path):
-        return jsonify({
-            "error": f"No precomputed HuBERT file for {audio.filename}"
-        }), 400
+        return jsonify({"error": f"No precomputed HuBERT file for {audio.filename}"}), 400
 
-    try:
-        waveform, sr = torchaudio.load(audio_path)
-        duration = waveform.shape[1] / sr
+    import torchaudio
+    waveform, sr = torchaudio.load(audio_path)
+    duration = waveform.shape[1] / sr
 
-        feats = extract_syllable_features(audio_path)
-        feats = np.expand_dims(feats, axis=0).astype(np.float32)
+    feats = extract_syllable_features(audio_path)
+    feats = np.expand_dims(feats, axis=0).astype(np.float32)
 
-        pred = syllable_model.predict(feats, verbose=0)
-        syllable_count = int(round(pred[0][0]))
+    syllable_model = get_syllable_model()
+    pred = syllable_model.predict(feats, verbose=0)
+    syllable_count = int(round(pred[0][0]))
+    syllable_rate = round(syllable_count / duration, 2) if duration > 0 else 0.0
 
-        # ✅ SAFE RATE COMPUTATION
-        syllable_rate = (
-            round(syllable_count / duration, 2)
-            if duration > 0 else 0.0
-        )
+    os.remove(audio_path)
+    return jsonify({"syllable_count": syllable_count, "syllable_rate": syllable_rate, "duration": round(duration, 2)})
 
-    except Exception as e:
-        print("❌ Syllable error:", e)
-        return jsonify({"error": str(e)}), 500
-    print("✅ Sending syllable response")
-
-    return jsonify({
-        "syllable_count": syllable_count,
-        "syllable_rate": syllable_rate,
-        "duration": round(duration, 2)
-    })
 @app.route("/")
 def home():
     return render_template("home.html")
 
-
 @app.route("/app")
 def app_page():
     return render_template("index.html")
-
-# ---------- RUN ----------
-if __name__ == "__main__":
-      app.run()
