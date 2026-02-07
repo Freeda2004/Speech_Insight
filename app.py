@@ -310,7 +310,7 @@ import numpy as np
 from flask import render_template
 from transformers import Wav2Vec2Processor, Wav2Vec2Model
 from SentenceLevelWordStressClassificationModel import WordLevelClassifier
-
+app = Flask(__name__)
 # ================= CONFIG =================
 MODEL_PATH = "word_level_model.pth"
 
@@ -331,7 +331,7 @@ SAMPLE_RATE = 16000
 
 
 
-app = Flask(__name__)
+
 CORS(
     app,
     resources={r"/*": {"origins": "*"}},
@@ -561,4 +561,4 @@ def app_page():
 
 # ---------- RUN ----------
 if __name__ == "__main__":
-      app.run(host="0.0.0.0", port=5000)
+      app.run()
